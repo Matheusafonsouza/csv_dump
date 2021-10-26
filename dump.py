@@ -4,12 +4,22 @@ import math
 import re
 
 def convert_to_int(value):
+    """
+    convert string integer value to int type on python
+    """
     return int(float(value))
 
 def remove_special_characters(value):
+    """
+    remove any special character inside string
+    """
     return re.sub(r'[^A-Za-z0-9]+', '', value)
 
 def create_sql_insert(table, keys, values):
+    """
+    create insert message for sql file, using keys to table definition and
+    values array for define inserted values
+    """
     line = ""
     line += f'INSERT INTO {table} {keys} VALUES ('
 
@@ -24,6 +34,15 @@ def create_sql_insert(table, keys, values):
     line += ');\n'
     return line
 
+def verify_already_exists(value, arr):
+    """
+    verify if a value already exists in array, removing the probability of
+    re-insert it on the list
+    """
+    if value in arr:
+        return True
+    return False
+
 # read csv file and create file to sql creation
 df = pd.read_csv('./hashtag_joebiden.csv')
 file = open('./insert.sql', 'w')
@@ -34,12 +53,12 @@ for index, row in tqdm(df.iterrows(), total=df.shape[0], desc='Creating user tab
     have_null_value = row.isnull().values.any()
     if not have_null_value:
         user_id = convert_to_int(row['user_id'])
-        if user_id in user_ids_list:
+        if verify_already_exists(user_id, user_ids_list):
             continue
 
         keys = '(user_id, name, screen_name, description, followers_count, location)'
         values = [
-            convert_to_int(row['user_id']),
+            user_id,
             remove_special_characters(row['user_name']),
             remove_special_characters(row['user_screen_name']),
             remove_special_characters(row['user_description']),
@@ -81,13 +100,13 @@ for index, row in tqdm(df.iterrows(), total=df.shape[0], desc='Creating location
     if not have_null_value:
         lat = row['lat']
         long = row['long']
-        if f'{lat}{long}' in location_ids_list:
+        if verify_already_exists(f'{lat}{long}', location_ids_list):
             continue
 
         keys = '(latitude, longitude, city, country, continent, state_code)'
         values = [
-            row['lat'],
-            row['long'],
+            lat,
+            long,
             remove_special_characters(row['city']),
             remove_special_characters(row['country']),
             remove_special_characters(row['continent']),
@@ -104,12 +123,12 @@ for index, row in tqdm(df.iterrows(), total=df.shape[0], desc='Creating tweet ta
     have_null_value = row.isnull().values.any()
     if not have_null_value:
         tweet_id = convert_to_int(row['tweet_id'])
-        if tweet_id in tweet_ids_list:
+        if verify_already_exists(tweet_id, tweet_ids_list):
             continue
 
         keys = '(tweet_id, created_at, message, likes, retweet_count, collected_at, user_id, latitude, longitude, source)'
         values = [
-            convert_to_int(row['tweet_id']),
+            tweet_id,
             row['created_at'],
             remove_special_characters(row['tweet']),
             convert_to_int(row['likes']),
